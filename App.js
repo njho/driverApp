@@ -67,7 +67,7 @@ const AuthStack = StackNavigator({
 });
 
 const OrderStack = StackNavigator({
-    Home: SecondOrder,
+    Home: SecondOrder, //SecondOrder
     Arrive: Arrived,
     Cancelled: Cancelled
 

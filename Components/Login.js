@@ -68,6 +68,7 @@ export default class BasicOrder extends React.Component {
                             underlineColorAndroid='rgba(250,250,250,1)'
                             placeholderTextColor={'white'}
                             keyboardType={'email-address'}
+                            onChangeText={(text) => this.textHandler('digits', text)}
                             placeholder={'E-mail'}/>
                         <TextInput
                             style={styles.textInput}

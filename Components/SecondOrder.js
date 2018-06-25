@@ -118,6 +118,9 @@ class SecondOrder extends React.Component {
             <View style={styles.container}>
 
                 <View style={styles.topBar}>
+                    <TouchableOpacity onPress={() => this.props.navigation.toggleDrawer()}>
+                        <Icon name="ios-menu" size={30} color={'white'}/>
+                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => this.props.navigation.navigate('Emergency')}>
 
                         <View style={{
@@ -125,13 +128,12 @@ class SecondOrder extends React.Component {
                             alignItems: 'center',
                             justifyContent: 'center'
                         }}>
-                            <Icon name="ios-warning" size={25} color={'red'}/>
-                            <Text style={{color: 'red'}}>&emsp; Emergency Stop</Text>
+                            <Icon name="ios-warning" size={25} color={'white'}/>
+                            <Text style={{color: 'white'}}> Emergency Stop</Text>
 
                         </View>
                     </TouchableOpacity>
 
-                    <Text style={styles.title}>{this.formatDate(Date.now())}</Text>
                 </View>
                 <View style={styles.card}>
                     <View style={styles.cardContainer}>
@@ -150,7 +152,7 @@ class SecondOrder extends React.Component {
                             <Text style={styles.customer}>
                                 Jill Jillenhall </Text>
                             <TouchableOpacity onPress={() => this.openNavigation()}>
-                                <Text>
+                                <Text style={styles.address}>
                                     45 Broadmoor Avenue SW, Calgary
                                 </Text>
                             </TouchableOpacity>
@@ -209,8 +211,11 @@ const styles = StyleSheet.create({
         fontSize: 30,
         fontWeight: 'bold'
     },
+    address: {
+        textDecorationLine: 'underline'
+    },
     topBar: {
-        backgroundColor: 'white',
+        backgroundColor: '#E8442E',
         elevation: 10,
         width: width,
         padding: 15,
