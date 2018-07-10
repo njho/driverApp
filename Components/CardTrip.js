@@ -16,9 +16,6 @@ import {connect} from 'react-redux';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 import ShiftStart from './ShiftStart'
-import CardTrip from './CardTrip';
-import CardNoJobs from './CardNoJobs';
-
 import agent from './Helpers/agent';
 
 const height = Dimensions.get('window').height;
@@ -27,73 +24,31 @@ const width = Dimensions.get('window').width;
 const mapStateToProps = state => ({
     octane: state.common.octane,
     isOnShift: state.common.isOnShift,
-    optimizedRoutes: state.routing.optimizedRoutes
+
+    user: state.auth.user,
+    optimizedRoutes: state.routing.optimizedRoutes,
+    routeInfo: state.routing.routeInfo,
+    customerMeta: state.routing.customerMeta
 });
 
 const mapDispatchToProps = dispatch => ({
-
+    takeJob: (uid) => {
+        dispatch(agent.actions.takeJob(uid))
+    },
+    getRouteInfo: (jobId) => {
+        dispatch(agent.getters.getRouteInfo(jobId));
+    },
 });
 
-class SecondOrder extends React.Component {
+class CardTrip extends React.Component {
     constructor() {
         super();
-        this.state = {
-            translate: new Animated.Value(height),
-            services: [
-                {
-                    title: 'Windshield Washer Fluid Top Up',
-                    price: '$5'
-                },
-                {
-                    title: 'Windshield Chip Repair',
-                    price: '$5'
-                },
-                {
-                    title: 'Tire Check & Fill',
-                    price: '$5'
-                }]
-
-        }
     };
 
-    componentWillReceiveProps(nextProps) {
-        console.log(nextProps);
-        if (nextProps.isOnShift === true && this.props.isOnShift === false) {
-            Animated.timing(
-                this.state.translate,
-                {
-                    toValue: 0,
-                    duration: 500,
-                    delay: 10,
-                }
-            ).start()
-        }
-    }
-
-
-    static navigationOptions = {
-        header: null,
-        drawerLabel: 'Home',
-        drawerIcon: ({tintColor}) => (
-            <Icon name="ios-home" size={25} color={tintColor}/>
-        ),
+    takeJob = () => {
+        console.log('Do something to accept a job');
+        this.props.takeJob(this.props.user.uid);
     };
-
-    formatDate(date) {
-        var d = new Date(date),
-            month = '' + (d.getMonth() + 1),
-            day = '' + d.getDate(),
-            year = d.getFullYear();
-
-        if (month.length < 2) month = '0' + month;
-        if (day.length < 2) day = '0' + day;
-
-        return [year, month, day].join('-');
-    }
-
-    callCustomer() {
-        Linking.openURL('tel:4035893536');
-    }
 
     openNavigation() {
         var url = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=Los+Angeles";
@@ -107,41 +62,73 @@ class SecondOrder extends React.Component {
     }
 
 
+    componentWillMount() {
+        this.props.getRouteInfo(this.props.optimizedRoutes[0].location_id);
+    }
+
+    componentWillReceiveProps(nextProps) {
+        console.log('These are the nextProps cardtrip');
+        console.log(nextProps);
+    }
+
+
     render() {
         return (
-            <View style={styles.container}>
-                <View style={styles.topBar}>
-                    <TouchableOpacity onPress={() => this.props.navigation.toggleDrawer()}>
-                        <Icon name="ios-menu" size={30} color={'white'}/>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => this.props.navigation.navigate('Emergency')}>
+            <View style={styles.cardContainer}>
+                <View style={styles.stripContainer}>
+                    <View style={styles.strip}>
+                    </View>
+                    <View style={styles.button}>
 
-                        <View style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}>
-                            <Icon name="ios-warning" size={25} color={'white'}/>
-                            <Text style={{color: 'white'}}> Emergency Stop</Text>
+                        <Text style={styles.buttonText}>
+                            14:00
+                        </Text>
 
-                        </View>
-                    </TouchableOpacity>
-
+                    </View>
                 </View>
-                {this.props.isOnShift ? null : <ShiftStart/>
-                }
-                <Animated.View style={[styles.card, {
-                    transform: [{translateY: this.state.translate}]
-                }]}>
-                    {this.props.optimizedRoutes.length > 0 ? <CardTrip/> : <CardNoJobs/>}
-                </Animated.View>
+                {this.props.routeInfo === null ? null : <View style={styles.customerContainer}>
+                    <Text style={styles.customer}>
+                        {this.props.customerMeta.firstName}  {this.props.customerMeta.lastName}</Text>
+                    <TouchableOpacity onPress={() => this.openNavigation()}>
+                        <Text style={styles.address}>
+                            Lat: {this.props.routeInfo.routing.location.lat},
+                            Lng: {this.props.routeInfo.routing.location.lat}
+                        </Text>
+                    </TouchableOpacity>
+                    <Text>
+                        Red Acura NSX </Text>
+                    <Text>
+                        BNN-2260</Text>
+                    <Text>
+                        Regular 87 - 60 Litres</Text>
+                    <View style={styles.outlineButton}>
+                        <Text style={styles.outlineButtonText}>
+                            Availability: 14:00 - 16:00
+                        </Text>
+                    </View>
+                </View>}
+
+                <View style={styles.buttonContainer}>
+                    <TouchableOpacity style={styles.buttonOne}
+                                      onPress={() => this.props.takeJob(this.props.user.uid)}>
+                        <Icon name="ios-checkmark" size={40} color={'white'}/>
+                        <Text style={styles.buttonOneText}>Arrive</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity style={styles.buttonTwo}
+                                      onPress={() => this.props.navigation.navigate('Cancelled')}>
+                        <Icon name="ios-close" size={40} color={'red'}/>
+                        <Text style={styles.buttonTwoText}>Cancel</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
-        );
+        )
+            ;
     }
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(SecondOrder);
+export default connect(mapStateToProps, mapDispatchToProps)(CardTrip);
 
 const styles = StyleSheet.create({
     container: {
@@ -175,7 +162,7 @@ const styles = StyleSheet.create({
         width: width - 60,
         borderTopWidth: 1,
         borderColor: '#dfd9d7',
-        paddingTop: 20,
+        paddingVertical: 20,
         flexDirection: 'row'
     },
     button: {

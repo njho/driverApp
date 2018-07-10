@@ -3,6 +3,7 @@ package com.surefuel.surefueldriver;
 import android.app.Application;
 
 import com.facebook.react.ReactApplication;
+import com.airbnb.android.react.lottie.LottiePackage;
 import com.facebook.react.ReactNativeHost;
 import com.facebook.react.ReactPackage;
 import com.facebook.react.shell.MainReactPackage;
@@ -24,53 +25,59 @@ import io.invertase.firebase.perf.RNFirebasePerformancePackage; // Firebase Perf
 import io.invertase.firebase.storage.RNFirebaseStoragePackage; // Firebase Storage
 import io.invertase.firebase.fabric.crashlytics.RNFirebaseCrashlyticsPackage; // Crashlytics
 
+import com.airbnb.android.react.lottie.LottiePackage;
+
+
 import java.util.Arrays;
 import java.util.List;
 
 public class MainApplication extends Application implements ReactApplication {
 
-  private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
+    private final ReactNativeHost mReactNativeHost = new ReactNativeHost(this) {
+        @Override
+        public boolean getUseDeveloperSupport() {
+            return BuildConfig.DEBUG;
+        }
+
+        @Override
+        protected List<ReactPackage> getPackages() {
+            return Arrays.<ReactPackage>asList(
+                    new MainReactPackage(),
+                    new LottiePackage(),
+                    new RNFirebasePackage(),
+                    // add/remove these packages as appropriate
+                    new RNFirebaseAdMobPackage(),
+                    new RNFirebaseAnalyticsPackage(),
+                    new RNFirebaseAuthPackage(),
+                    new RNFirebaseCrashlyticsPackage(),
+                    new RNFirebaseDatabasePackage(),
+                    new RNFirebaseFirestorePackage(),
+                    new RNFirebaseInstanceIdPackage(),
+                    new RNFirebaseLinksPackage(),
+                    new RNFirebaseMessagingPackage(),
+                    new RNFirebaseNotificationsPackage(),
+                    new RNFirebasePerformancePackage(),
+                    new RNFirebaseRemoteConfigPackage(),
+                    new RNFirebaseStoragePackage(),
+                    new LottiePackage()
+
+            );
+        }
+
+        @Override
+        protected String getJSMainModuleName() {
+            return "index";
+        }
+    };
+
     @Override
-    public boolean getUseDeveloperSupport() {
-      return BuildConfig.DEBUG;
+    public ReactNativeHost getReactNativeHost() {
+        return mReactNativeHost;
     }
 
     @Override
-    protected List<ReactPackage> getPackages() {
-      return Arrays.<ReactPackage>asList(
-        new MainReactPackage(),
-        new RNFirebasePackage(),
-        // add/remove these packages as appropriate
-        new RNFirebaseAdMobPackage(),
-        new RNFirebaseAnalyticsPackage(),
-        new RNFirebaseAuthPackage(),
-        new RNFirebaseCrashlyticsPackage(),
-        new RNFirebaseDatabasePackage(),
-        new RNFirebaseFirestorePackage(),
-        new RNFirebaseInstanceIdPackage(),
-        new RNFirebaseLinksPackage(),
-        new RNFirebaseMessagingPackage(),
-        new RNFirebaseNotificationsPackage(),
-        new RNFirebasePerformancePackage(),
-        new RNFirebaseRemoteConfigPackage(),
-        new RNFirebaseStoragePackage()
-      );
+    public void onCreate() {
+        super.onCreate();
+        SoLoader.init(this, /* native exopackage */ false);
     }
-    
-    @Override
-    protected String getJSMainModuleName() {
-      return "index";
-    }
-  };
-
-  @Override
-  public ReactNativeHost getReactNativeHost() {
-    return mReactNativeHost;
-  }
-
-  @Override
-  public void onCreate() {
-    super.onCreate();
-    SoLoader.init(this, /* native exopackage */ false);
-  }
 }

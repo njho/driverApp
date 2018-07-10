@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
-import {ListItem, CheckBox} from 'react-native-elements';
+import {ListItem, List} from 'react-native-elements';
 
 
 import firebase from 'react-native-firebase';
@@ -24,6 +24,24 @@ import firebase from 'react-native-firebase';
 const height = Dimensions.get('window').height;
 const width = Dimensions.get('window').width;
 
+const list = [
+    {
+        title: 'Gas Cap Locked',
+        avatar_url: require('../assets/windshield.png'),
+        icon: 'av-timer'
+    },
+    {
+        title: 'Wrong Address',
+        avatar_url: require('../assets/tiregauge.png'),
+        icon: 'flight-takeoff'
+    },
+    {
+        title: 'Other',
+        avatar_url: require('../assets/topup.png'),
+
+        icon: 'flight-takeoff'
+    },
+];
 
 export default class PersonalInfo extends React.Component {
     constructor() {
@@ -35,7 +53,14 @@ export default class PersonalInfo extends React.Component {
 
     static navigationOptions = {
         drawerLabel: 'Arrived',
-        title: 'Cancellation',
+        title: 'Job Cancellation',
+        headerStyle: {
+            backgroundColor: '#2c8dfb',
+        },
+        headerTintColor: 'white',
+        drawerIcon: ({tintColor}) => (
+            <Icon name="ios-home" size={25} color={tintColor}/>
+        ),
         // headerLeft: (
         //     <TouchableOpacity
         //         onPress={()=>this.props.navigation.navigate('Home')}
@@ -53,43 +78,52 @@ export default class PersonalInfo extends React.Component {
     render() {
         return (
             <KeyboardAvoidingView style={styles.container}
-                                  contentContainerStyle={{height: height}} behavior="position"
+                                  behavior="position"
                                   enabled>
                 <ScrollView contentContainerStyle={styles.scrollContainer}>
-                    <View>
-                        <Text style={styles.subheader}>Choose a Reason</Text>
-                        <View
-                            style={styles.listContainer}>
-                            <View style={styles.listItem}>
-                                <Text style={styles.listItemText}>
-                                    Gas Cap Locked
-                                </Text>
-                                <Switch></Switch>
-                            </View>
-                            <View style={styles.listItem}>
-                                <Text style={styles.listItemText}>
-                                    Child is Gay
-                                </Text>
-                                <Switch></Switch>
-                            </View>
-                            <View style={styles.listItem}>
-                                <Text style={styles.listItemText}>
-                                    Wrong Address </Text>
-                                <Switch></Switch>
-                            </View>
-                            <View style={styles.listItem}>
-                                <Text style={styles.listItemText}>
-                                    Other </Text>
-                                <Switch></Switch>
-                            </View>
-
+                    <View style={[styles.card, {backgroundColor: '#3B586E'}]}>
+                        <View style={styles.customerContainer}>
+                            <Icon style={{position: 'absolute', top: 0, right: 10}}
+                                  name="ios-information-circle-outline" size={35} color={'rgba(255,255,255,0.9)'}/>
+                            <Text style={[styles.customer, {color: 'white', fontSize: 25, fontWeight: 'bold'}]}>
+                                Jill Jillenhall </Text>
+                            <Text style={{color: 'white'}}>
+                                45 Broadmoor Avenue SW, Calgary
+                            </Text>
+                            <Text style={{color: 'white'}}>
+                                Red Acura NSX </Text>
+                            <Text style={{color: 'white'}}>
+                                BNN-2260</Text>
+                            <Text style={{color: 'white'}}>
+                                Regular 87 - 60 Litres
+                            </Text>
                         </View>
                     </View>
-                    <View>
-                        <Text style={styles.subheader}>Please Explain in Further Detail</Text>
+                    <View style={styles.bottomContainer}>
+                        <Text style={styles.subheader}>Why are you cancelling this delivery?</Text>
 
-                        <View
-                            style={styles.listContainer}>
+                        <List>
+                            {
+                                list.map((item, i) => (
+                                    <ListItem
+                                        key={i}
+                                        title={item.title}
+                                        hideChevron={true}
+                                        switchButton
+                                        switchOnTintColor={'#9eb7f0'}
+                                        switchThumbTintColor={'#469cfc'}
+                                        switched={this.state.windshieldOn}
+                                        onSwitch={() => this.toggleSwitch('windshield')}
+
+                                    />
+                                ))
+                            }
+                        </List>
+                    </View>
+                    <View>
+                        <Text style={styles.subheader}>Please Provide Additional Details</Text>
+
+                        <View>
                             <View style={styles.textContainer}>
                                 <TextInput
                                     style={styles.textInput}
@@ -103,13 +137,13 @@ export default class PersonalInfo extends React.Component {
                         </View>
                     </View>
                     <TouchableOpacity style={{
-                        borderRadius: 40,
                         alignItems: 'center',
                         justifyContent: 'center',
                         width: width * 0.9,
                         backgroundColor: '#fb4348',
                         elevation: 2,
-                        marginBottom: 0,
+                        marginTop: 25,
+                        marginBottom: 50
                     }}>
                         <Text
                             style={{
@@ -122,7 +156,6 @@ export default class PersonalInfo extends React.Component {
 
                     </TouchableOpacity>
                 </ScrollView>
-
             </KeyboardAvoidingView>
 
         )
@@ -134,33 +167,43 @@ const styles = StyleSheet.create({
     avoidingView: {
         flex: 1,
     },
-    scrollContainer: {
-        flex: 1,
-        padding: 40,
-        paddingTop: 30,
-        alignItems: 'center',
-        justifyContent: 'space-around'
+    bottomContainer: {
+        width: width * 0.9
+    },
 
+    card: {
+        backgroundColor: 'white',
+        elevation: 1,
+        width: width,
+        paddingBottom: 10,
+        paddingVertical: 30,
+        paddingHorizontal: 20
+    },
+    customerContainer: {
+        paddingBottom: 20,
+    },
+    scrollContainer: {
+
+        alignItems: 'center',
     },
     container: {
         flex: 1,
-        backgroundColor: '#ecf0f1',
-        justifyContent: 'space-around'
+        justifyContent: 'space-around',
+        backgroundColor: 'white'
 
     },
-    listContainer: {},
-    listItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        paddingHorizontal: 20,
-        paddingVertical: 10,
-        marginTop: 5,
-        width: width * 0.9,
-        alignItems: 'center',
-        backgroundColor: 'rgba(255,255,255,0.4)',
-        borderColor: '#dde1e2',
-        borderWidth: 1,
-    },
+    // listItem: {
+    //     flexDirection: 'row',
+    //     justifyContent: 'space-between',
+    //     paddingHorizontal: 20,
+    //     paddingVertical: 10,
+    //     marginTop: 5,
+    //     width: width * 0.9,
+    //     alignItems: 'center',
+    //     backgroundColor: 'rgba(255,255,255,0.4)',
+    //     borderColor: '#dde1e2',
+    //     borderWidth: 1,
+    // },
     listItemText: {
         textAlign: 'left'
     },
@@ -175,14 +218,17 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start'
     },
     subheader: {
+        textAlign: 'left',
+        fontSize: 18,
+        marginTop: 25,
         fontWeight: 'bold',
-        textAlign: 'left'
+        color: '#3B586E',
     },
     textInput: {
         flex: 1,
         alignSelf: 'flex-start'
+    },
 
-    }
 
 });
 

@@ -9,36 +9,36 @@ import {
     TouchableOpacity,
     Dimensions,
     FlatList,
-    Animated,
     Linking
 } from 'react-native';
+
 import {connect} from 'react-redux';
+
 import Icon from 'react-native-vector-icons/Ionicons';
-
-import ShiftStart from './ShiftStart'
-import CardTrip from './CardTrip';
-import CardNoJobs from './CardNoJobs';
-
 import agent from './Helpers/agent';
+
 
 const height = Dimensions.get('window').height;
 const width = Dimensions.get('window').width;
 
 const mapStateToProps = state => ({
-    octane: state.common.octane,
-    isOnShift: state.common.isOnShift,
-    optimizedRoutes: state.routing.optimizedRoutes
+    user: state.auth.user,
+    isOnShift: state.common.isOnShift
 });
 
 const mapDispatchToProps = dispatch => ({
-
+    octaneSelected: (value) => {
+        dispatch({type: 'OCTANE_SELECTED', octane: value});
+    },
+    setShiftStart: (uid) => {
+        dispatch(agent.actions.setIsOnShift(uid))
+    }
 });
 
-class SecondOrder extends React.Component {
+class ShiftStart extends React.Component {
     constructor() {
         super();
         this.state = {
-            translate: new Animated.Value(height),
             services: [
                 {
                     title: 'Windshield Washer Fluid Top Up',
@@ -56,101 +56,41 @@ class SecondOrder extends React.Component {
         }
     };
 
-    componentWillReceiveProps(nextProps) {
-        console.log(nextProps);
-        if (nextProps.isOnShift === true && this.props.isOnShift === false) {
-            Animated.timing(
-                this.state.translate,
-                {
-                    toValue: 0,
-                    duration: 500,
-                    delay: 10,
-                }
-            ).start()
-        }
-    }
-
-
-    static navigationOptions = {
-        header: null,
-        drawerLabel: 'Home',
-        drawerIcon: ({tintColor}) => (
-            <Icon name="ios-home" size={25} color={tintColor}/>
-        ),
-    };
-
-    formatDate(date) {
-        var d = new Date(date),
-            month = '' + (d.getMonth() + 1),
-            day = '' + d.getDate(),
-            year = d.getFullYear();
-
-        if (month.length < 2) month = '0' + month;
-        if (day.length < 2) day = '0' + day;
-
-        return [year, month, day].join('-');
-    }
-
-    callCustomer() {
-        Linking.openURL('tel:4035893536');
-    }
-
-    openNavigation() {
-        var url = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=Los+Angeles";
-        Linking.canOpenURL(url).then(supported => {
-            if (!supported) {
-                console.log('Can\'t handle url: ' + url);
-            } else {
-                return Linking.openURL(url);
-            }
-        }).catch(err => console.error('An error occurred', err));
-    }
-
 
     render() {
         return (
-            <View style={styles.container}>
-                <View style={styles.topBar}>
-                    <TouchableOpacity onPress={() => this.props.navigation.toggleDrawer()}>
-                        <Icon name="ios-menu" size={30} color={'white'}/>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => this.props.navigation.navigate('Emergency')}>
 
-                        <View style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                        }}>
-                            <Icon name="ios-warning" size={25} color={'white'}/>
-                            <Text style={{color: 'white'}}> Emergency Stop</Text>
-
-                        </View>
-                    </TouchableOpacity>
-
+            <View style={styles.card}>
+                <View style={styles.stripContainer}>
+                    <View style={styles.strip}/>
                 </View>
-                {this.props.isOnShift ? null : <ShiftStart/>
-                }
-                <Animated.View style={[styles.card, {
-                    transform: [{translateY: this.state.translate}]
-                }]}>
-                    {this.props.optimizedRoutes.length > 0 ? <CardTrip/> : <CardNoJobs/>}
-                </Animated.View>
+                <View style={{paddingHorizontal: 30, flex: 1, justifyContent: 'space-around'}}>
+                    <View style={styles.customerContainer}>
+                        <Text style={styles.customer}>
+                            It looks like your off shift!</Text>
+                        <Text>
+                            Go do something else!{"\n"}
+                            When you're ready, let us know when you start! </Text>
+                    </View>
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity style={styles.buttonOne}
+                                          onPress={() => this.props.setShiftStart(this.props.user.uid)}>
+                            <Icon name="ios-checkmark" size={40} color={'white'}/>
+                            <Text style={styles.buttonOneText}>Start Shift</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
             </View>
 
         );
     }
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(SecondOrder);
+export default connect(mapStateToProps, mapDispatchToProps)(ShiftStart);
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        height: height,
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        backgroundColor: '#4a4847'
-    },
+
     customerContainer: {
         paddingTop: 10,
         paddingBottom: 20,
@@ -159,9 +99,7 @@ const styles = StyleSheet.create({
         fontSize: 30,
         fontWeight: 'bold'
     },
-    address: {
-        textDecorationLine: 'underline'
-    },
+
     topBar: {
         backgroundColor: '#2c8dfb',
         elevation: 10,
@@ -170,35 +108,31 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between'
+
     },
     buttonContainer: {
-        width: width - 60,
+        width: width * 0.9,
         borderTopWidth: 1,
         borderColor: '#dfd9d7',
         paddingTop: 20,
+
         flexDirection: 'row'
-    },
-    button: {
-        backgroundColor: '#2c8dfb',
-        flex: 0,
-        flexShrink: 1,
-        alignSelf: 'flex-start',
-        paddingVertical: 10,
-        paddingHorizontal: 20,
-        borderRadius: 40
     },
     stripContainer: {
         justifyContent: 'flex-start',
         alignItems: 'center',
         flex: 0,
         flexShrink: 1,
+        height: height,
+        position: 'absolute',
+        left: 0,
+        bottom: 0
     },
     strip: {
-        width: 8,
-        height: 60,
+        width: 20,
+        height: height,
         backgroundColor: '#c6dffb',
         position: 'absolute',
-        left: 20,
         bottom: 20,
     },
     buttonOne: {
@@ -207,11 +141,11 @@ const styles = StyleSheet.create({
         backgroundColor: '#2c8dfb',
         flex: 0,
         flexShrink: 1,
-        alignSelf: 'flex-start',
+        alignSelf: 'stretch',
         paddingVertical: 5,
         paddingHorizontal: 20,
         borderRadius: 40,
-        marginRight: 15
+        marginRight: 15,
     },
     buttonOneText: {
         fontSize: 14,
@@ -273,10 +207,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'white',
         elevation: 10,
         width: width,
-        borderRadius: 5,
-        marginTop: 30,
-        paddingTop: 30,
-        paddingLeft: 30,
+        height: height,
+        paddingVertical: 30,
 
     },
     title: {

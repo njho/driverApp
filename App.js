@@ -7,9 +7,11 @@ import {
     createStackNavigator,
     StackNavigator,
     createDrawerNavigator,
+    DrawerNavigator,
     DrawerItems,
     SafeAreaView
 } from 'react-navigation';
+
 
 import {Provider} from 'react-redux';
 import {connect} from 'react-redux';
@@ -22,6 +24,9 @@ import SecondOrder from './Components/SecondOrder';
 import Emergency from './Components/Emergency'
 import Arrived from './Components/Arrived'
 import Cancelled from './Components/Cancelled'
+import Icon from 'react-native-vector-icons/Ionicons';
+import NavigationService from './Components/Helpers/NavigationService';
+
 
 
 import CustomDrawerContentComponent from './Components/CustomDrawerContentComponent'
@@ -54,7 +59,10 @@ class App extends React.Component {
     render() {
         return (
             <Provider store={store}>
-              <Navigator/>
+                <Navigator
+                    ref={navigatorRef => {
+                        NavigationService.setTopLevelNavigator(navigatorRef);
+                    }}/>
             </Provider>
 
         );
@@ -67,59 +75,46 @@ const AuthStack = StackNavigator({
 });
 
 const OrderStack = StackNavigator({
-    Home: SecondOrder, //SecondOrder
+    Home: {
+        screen: SecondOrder,
+    },
     Arrive: Arrived,
-    Cancelled: Cancelled
+    Cancelled: Cancelled,
+    Emergency: Emergency
 
 });
 // const ArrivedStack = StackNavigator({
 // });
 
-const drawerNav = createDrawerNavigator({
-    Home: OrderStack,
+const drawerNav = DrawerNavigator({
+    Home: {
+        screen: OrderStack,
+        navigationOptions: {
+            title: 'Home',
+            headerTitle: 'Home',
+            drawerIcon: ({tintColor}) => <Icon name="ios-home" size={25} color={tintColor}/>
+        }
+    },
     Settings: PersonalInfo,
-    Emergency: Emergency
 }, {
     title: 'SureFuel',
     contentComponent: CustomDrawerContentComponent
 });
 
+const homeDrawerIcon = ({tintColor}) => getDrawerIcon('home', tintColor);
+
 const Navigator = new SwitchNavigator(
     {
-        App: drawerNav,
+        App: {
+            screen: drawerNav,
+
+        },
         Loading: AuthStack,
-        // Arrived: ArrivedStack
     },
     {
         initialRouteName: 'Loading',
     }
 );
 
-export default App ;
-//
-// <Text style={styles.modulesHeader}>The following Firebase modules are enabled:</Text>
-// {firebase.admob.nativeModuleExists && <Text style={styles.module}>Admob</Text>}
-// {firebase.analytics.nativeModuleExists && <Text style={styles.module}>Analytics</Text>}
-// {firebase.auth.nativeModuleExists && <Text style={styles.module}>Authentication</Text>}
-// {firebase.crashlytics.nativeModuleExists && <Text style={styles.module}>Crashlytics</Text>}
-// {firebase.firestore.nativeModuleExists && <Text style={styles.module}>Cloud Firestore</Text>}
-// {firebase.messaging.nativeModuleExists && <Text style={styles.module}>Cloud Messaging</Text>}
-// {firebase.links.nativeModuleExists && <Text style={styles.module}>Dynamic Links</Text>}
-// {firebase.iid.nativeModuleExists && <Text style={styles.module}>Instance ID</Text>}
-// {firebase.notifications.nativeModuleExists && <Text style={styles.module}>Notifications</Text>}
-// {firebase.perf.nativeModuleExists && <Text style={styles.module}>Performance Monitoring</Text>}
-// {firebase.database.nativeModuleExists && <Text style={styles.module}>Realtime Database</Text>}
-// {firebase.config.nativeModuleExists && <Text style={styles.module}>Remote Config</Text>}
-// {firebase.storage.nativeModuleExists && <Text style={styles.module}>Storage</Text>}
+export default App;
 
-
-//// export default createSwitchNavigator({
-//         SignIn: {
-//             screen: App
-//         },
-//         BasicOrder: {
-//             screen: BasicOrder
-//         }
-//     },
-// );
-//

@@ -1,26 +1,28 @@
 const defaultState = {
-    octane: null,
-    loginState: 0,
-    isOnShift: false
+    user: null,
+    email: null,
+    password: null,
+
 };
 
 export default (state = defaultState, action) => {
     switch (action.type) {
-        case 'OCTANE_SELECTED':
+        case 'SET_EMAIL':
             return {
                 ...state,
-                octane: action.octane
+                email: action.value
             };
-        case 'SET_LOGIN_STATE':
+        case 'SET_PASSWORD':
             return {
                 ...state,
-                loginState: action.value
+                password: action.value
             };
-        case 'SET_DRIVER_ON_SHIFT':
+        case 'SET_USER':
             return {
                 ...state,
-                isOnShift: action.value
-            }
+                user: action.value
+            };
+
     }
 
     return state;

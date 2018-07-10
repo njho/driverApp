@@ -23,4 +23,6 @@ target 'SureFuelDriver' do
   
   pod 'Fabric', '~> 1.7.6'
   pod 'Crashlytics', '~> 3.10.1'
+  pod 'lottie-react-native', :path => '../node_modules/lottie-react-native'
+
 end

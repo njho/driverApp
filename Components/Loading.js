@@ -1,14 +1,43 @@
 import React from 'react';
-import {StyleSheet, Platform, Image, Text, View, ScrollView, TouchableOpacity, Dimensions} from 'react-native';
-
+import {
+    StyleSheet,
+    Platform,
+    Image,
+    Text,
+    View,
+    ScrollView,
+    KeyboardAvoidingView,
+    Dimensions,
+    AsyncStorage
+} from 'react-native';
 import firebase from 'react-native-firebase';
+import {connect} from 'react-redux';
 
+import EmailPassword from './Login/EmailPassword'
+import agent from './Helpers/agent';
 
 const height = Dimensions.get('window').height;
 const width = Dimensions.get('window').width;
 
+const mapStateToProps = state => ({
+    loginState: state.common.loginState
+});
 
-export default class BasicOrder extends React.Component {
+const mapDispatchToProps = dispatch => ({
+    setLoginState: (value) => {
+        dispatch({type: 'SET_LOGIN_STATE', value: value});
+    },
+    getUser: (uid) => dispatch(agent.getters.getUser(uid)),
+    getIsOnShift: (uid) => dispatch(agent.getters.getIsOnShift(uid)),
+    getOptimizedRoutes: (uid)=> dispatch(agent.getters.getOptimizedRoutes(uid)),
+    setUser: (value) => {
+        dispatch({type: 'SET_USER', value: value});
+    }
+
+});
+
+
+class Loading extends React.Component {
     static navigationOptions = {
         header: null
     };
@@ -18,50 +47,77 @@ export default class BasicOrder extends React.Component {
     }
 
     componentDidMount() {
-        // firebase.auth().onAuthStateChanged(user => {
-        //     console.log('There is a user Logged In');
-        //     console.log(user);
-        //     // firebase.auth().signOut()
-        //     this.props.navigation.navigate(user ? 'secondOrder' : 'SecondOrder') //Appo
-        // })
-           this.props.navigation.navigate('Home') //Appo
+        firebase.auth().onAuthStateChanged(user => {
+            // this.props.navigation.navigate('Home');
+            console.log('This is the user ' + user);
+            if (user !== null) {
 
+                this.props.getUser(user.uid);
+                this.props.setUser(user);
+                this.props.getIsOnShift(user.uid);
+                this.props.getOptimizedRoutes(user.uid);
+
+                AsyncStorage.setItem('userToken', user.uid);
+            } else {
+                this.props.setLoginState(1);
+            }
+        });
+        // this.props.navigation.navigate('Home');
     }
+
+    renderView = () => {
+        switch (this.props.loginState) {
+            case 0:
+                return <View style={styles.loginContainer}/>
+            case 1:
+                return <EmailPassword/>
+        }
+    };
+
 
     render() {
         return (
-            <View style={styles.container}>
-                <Image source={require('../assets/LoginBackground.png')}
-                       style={{
-                           position: 'absolute',
-                           resizeMode: 'cover',
-                           width: width,
-                           height: height,
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
+                <KeyboardAvoidingView style={styles.container} enabled>
+                    <View style={styles.container}>
+                        <Image source={require('../assets/LoginBackground.png')}
+                               style={{
+                                   position: 'absolute',
+                                   resizeMode: 'cover',
+                                   width: width,
+                                   height: height,
 
-                       }}/>
-
-
-                <View style={styles.logoContainer}>
-
-                    <Image source={require('../assets/sure-fuel-icon.png')} style={[styles.logo]}/>
-                    <Text style={styles.welcome}>
-                        SUREFUEL </Text>
-                    <Text style={styles.subheader}>
-                        TAP THE APP TO FILL </Text>
-                </View>
-
-                <View style={styles.loginContainer}>
+                               }}/>
 
 
-                </View>
-            </View>
+                        <View style={styles.logoContainer}>
+
+                            <Image source={require('../assets/sure-fuel-icon.png')} style={[styles.logo]}/>
+                            <Text style={styles.welcome}>
+                                SUREFUEL </Text>
+                            <Text style={styles.subheader}>
+                                TAP THE APP TO FILL </Text>
+                        </View>
+
+                        {this.renderView()}
+                    </View>
+                </KeyboardAvoidingView>
+            </ScrollView>
 
         );
     }
 }
 
+export default connect(mapStateToProps, mapDispatchToProps)(Loading);
+
+
 const styles = StyleSheet.create({
+    scrollContainer: {
+        height: height,
+        width: width
+    },
     container: {
+        width: width,
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',

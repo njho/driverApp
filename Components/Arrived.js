@@ -10,11 +10,13 @@ import {
     Button,
     TouchableOpacity, Switch,
     ScrollView,
+    Animated,
     Dimensions
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import Animation from 'lottie-react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {ListItem, List,} from 'react-native-elements';
+import {connect} from 'react-redux';
 
 
 import firebase from 'react-native-firebase';
@@ -42,25 +44,59 @@ const list = [
     },
 ];
 
+const mapStateToProps = state => ({
+    optimizedRoutes: state.routing.optimizedRoutes,
+    routeInfo: state.routing.routeInfo,
 
-export default class Arrived extends React.Component {
+    user: state.auth.user
+});
+
+const mapDispatchToProps = dispatch => ({
+    getRouteInfo: (jobId) => {
+        dispatch(agent.getters.getRouteInfo(jobId));
+    },
+});
+
+
+class Arrived extends React.Component {
     constructor() {
         super();
         this.state = {
             // firebase things?
             isOn: true,
-            windshieldOn: true
+            windshieldOn: true,
+            progress: new Animated.Value(0),
+            animationVisible: false
         };
     }
+
+
+    completionButton = () => {
+        this.setState({
+            ...this.state,
+            animationVisible: true
+        });
+
+        Animated.timing(this.state.progress, {
+            toValue: 1,
+            duration: 3000,
+        }).start(() => {
+            return
+        });
+        this.props.takeJob(this.props.user.uid);
+    };
 
     static navigationOptions = {
         drawerLabel: 'Arrived',
         title: 'Customer Completion',
         backgroundColor: 'red',
         headerStyle: {
-            backgroundColor: '#E8442E',
+            backgroundColor: '#2c8dfb',
         },
-        headerTintColor: 'white'
+        headerTintColor: 'white',
+        drawerIcon: ({tintColor}) => (
+            <Icon name="ios-home" size={25} color={tintColor}/>
+        ),
 
         // headerLeft: (
         //     <TouchableOpacity
@@ -93,6 +129,8 @@ export default class Arrived extends React.Component {
 
 
     render() {
+        console.log('These are the optimizedRoutes');
+        console.log(this.props.optimizedRoutes);
         return (
             <View style={styles.container}>
                 <ScrollView
@@ -100,7 +138,8 @@ export default class Arrived extends React.Component {
                     style={{
                         width: width,
                     }}>
-                    <View style={[styles.card, {    backgroundColor: '#3B586E'}]}>
+                    <View style={[styles.card, {backgroundColor: '#3B586E'}]}>
+
                         <View style={styles.customerContainer}>
                             <Icon style={{position: 'absolute', top: 0, right: 10}}
                                   name="ios-information-circle-outline" size={35} color={'rgba(255,255,255,0.9)'}/>
@@ -114,7 +153,7 @@ export default class Arrived extends React.Component {
                             <Text style={{color: 'white'}}>
                                 BNN-2260</Text>
                             <Text style={{color: 'white'}}>
-                                Regular 87 - 650 Litres
+                                Regular 87 - 60 Litres
                             </Text>
                         </View>
                     </View>
@@ -127,7 +166,6 @@ export default class Arrived extends React.Component {
                                 underlineColorAndroid='rgba(250,250,250,1)'
                                 autofocus={'true'}
                                 keyboardType={'numeric'}
-
                                 placeholder={'Fuel Quantity (Required)'}/>
                             <Text style={styles.label}>60 L</Text>
                         </View>
@@ -161,22 +199,53 @@ export default class Arrived extends React.Component {
                         </View>
 
                         <View style={styles.completionButtonContainer}>
-                            <TouchableOpacity style={{
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: '#469cfc',
-                                marginBottom: 10,
-                                marginTop: 20,
-                                elevation: 5
-                            }}>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    this.completionButton()
+                                }}
+                                style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backgroundColor: '#469cfc',
+                                    marginBottom: 10,
+                                    marginTop: 20,
+                                    elevation: 5
+                                }}>
                                 <Text
                                     style={{
                                         color: 'white',
                                         fontWeight: '600',
                                         marginVertical: 15,
+                                        marginLeft: this.state.animationVisible ? 10 : 0,
                                         fontSize: 15
                                     }}>
                                     CONFIRM COMPLETION</Text>
+                                {this.state.animationVisible ?
+                                    <View style={{
+                                        width: 2,
+                                        height: height / 12,
+                                        marginLeft: 30,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}><Animation
+                                        ref={animation => {
+                                            this.complete = animation;
+                                        }}
+                                        style={{
+                                            zIndex: 10,
+                                            elevation: 10,
+                                            position: 'absolute',
+                                            paddingLeft: 10,
+                                            width: width / 8,
+                                            height: width / 8,
+
+                                        }}
+                                        resizeMode="cover"
+                                        progress={this.state.progress}
+                                        source={require('../assets/Lottie/done.json')}/>
+                                    </View> : null}
                             </TouchableOpacity>
                             <TouchableOpacity style={{
                                 alignItems: 'center',
@@ -205,6 +274,8 @@ export default class Arrived extends React.Component {
             ;
     }
 }
+
+export default connect(mapStateToProps, mapDispatchToProps)(Arrived);
 
 const styles = StyleSheet.create({
     avoidingView: {
