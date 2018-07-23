@@ -22,10 +22,10 @@ const height = Dimensions.get('window').height;
 const width = Dimensions.get('window').width;
 
 const mapStateToProps = state => ({
-    octane: state.common.octane,
-    isOnShift: state.common.isOnShift,
 
     user: state.auth.user,
+    optimizedRoutes: state.routing.optimizedRoutes
+
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -53,16 +53,20 @@ class CardNoJobs extends React.Component {
                 </View>
                 <View style={styles.customerContainer}>
                     <Text style={styles.customer}>
-                        Accept Your First Job</Text>
+                        {this.props.optimizedRoutes.length > 0 ?
+                            'Accept your first Job!'
+                            : 'Seems like there aren\'t any jobs available yet!'}</Text>
 
                 </View>
-                <View style={styles.buttonContainer}>
-                    <TouchableOpacity style={styles.buttonOne}
-                                      onPress={() => this.takeJob()}>
-                        < Icon name="ios-checkmark" size={40} color={'white'}/>
-                        <Text style={styles.buttonOneText}>Accept a Job</Text>
-                    </TouchableOpacity>
-                </View>
+                {this.props.optimizedRoutes.length > 0 ?
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity style={styles.buttonOne}
+                                          onPress={() => this.takeJob()}>
+                            < Icon name="ios-checkmark" size={40} color={'white'}/>
+                            <Text style={styles.buttonOneText}>Accept a Job</Text>
+                        </TouchableOpacity>
+                    </View>
+                    : null}
             </View>
 
         )
@@ -73,6 +77,15 @@ class CardNoJobs extends React.Component {
 export default connect(mapStateToProps, mapDispatchToProps)(CardNoJobs);
 
 const styles = StyleSheet.create({
+    cardContainer: {
+        paddingVertical: 20,
+        borderRadius: 10,
+        marginVertical: 15,
+        paddingHorizontal: 30,
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+    },
     container: {
         flex: 1,
         height: height,

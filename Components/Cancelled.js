@@ -7,18 +7,19 @@ import {
     Text,
     TextInput,
     View,
+    Alert,
     Button,
     TouchableOpacity,
     Switch,
     Dimensions,
     ScrollView
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {ListItem, List} from 'react-native-elements';
+import {connect} from 'react-redux';
 
-
-import firebase from 'react-native-firebase';
+import agent from './Helpers/agent';
+import CustomerInfo from './CustomerInfo';
 
 
 const height = Dimensions.get('window').height;
@@ -27,27 +28,49 @@ const width = Dimensions.get('window').width;
 const list = [
     {
         title: 'Gas Cap Locked',
+        type: 'gasCap',
         avatar_url: require('../assets/windshield.png'),
-        icon: 'av-timer'
     },
     {
         title: 'Wrong Address',
+        type: 'address',
         avatar_url: require('../assets/tiregauge.png'),
-        icon: 'flight-takeoff'
     },
     {
         title: 'Other',
+        type: 'other',
         avatar_url: require('../assets/topup.png'),
-
-        icon: 'flight-takeoff'
     },
 ];
 
-export default class PersonalInfo extends React.Component {
+const mapStateToProps = state => ({
+    optimizedRoutes: state.routing.optimizedRoutes,
+    routeInfo: state.routing.routeInfo,
+
+    user: state.auth.user
+});
+
+const mapDispatchToProps = dispatch => ({
+
+    confirmCancellation: (object, jobId) => {
+        dispatch(agent.actions.confirmCancellation(object, jobId));
+    },
+    takeJob: (uid) => {
+        dispatch(agent.actions.takeJob(uid))
+    }
+});
+
+
+class Cancelled extends React.Component {
     constructor() {
         super();
         this.state = {
-            // firebase things?
+            gasCap: false,
+            address: false,
+            other: false,
+            feedback: '',
+            type: 'driver'
+
         };
     }
 
@@ -61,44 +84,63 @@ export default class PersonalInfo extends React.Component {
         drawerIcon: ({tintColor}) => (
             <Icon name="ios-home" size={25} color={tintColor}/>
         ),
-        // headerLeft: (
-        //     <TouchableOpacity
-        //         onPress={()=>this.props.navigation.navigate('Home')}
-        //         style={{paddingLeft: 20}}
-        //     >
-        //         <Icon name="ios-arrow-back" size={40}/>
-        //     </TouchableOpacity>),
-        // drawerIcon: ({tintColor}) => (
-        //     <Icon name="ios-mail" size={25} color={tintColor}/>
-        // ),
+    };
+
+    toggleSwitch(value) {
+        console.log(value);
+        switch (value) {
+            case 'gasCap':
+                this.setState({...this.state, gasCap: !this.state.gasCap});
+                return;
+            case 'address':
+                this.setState({...this.state, address: !this.state.address});
+                return;
+            case 'other':
+                this.setState({...this.state, other: !this.state.other});
+                return;
+        }
+    }
+
+    textHandler(text) {
+        console.log(text);
+        this.setState({...this.state, feedback: text})
+    }
+
+    confirmCancellation = () => {
+
+        if (!this.state.gasCap && !this.state.address && !this.state.other || (this.state.feedback === '' && this.state.other === true )) {
+            Alert.alert(
+                'Confirm Cancellation',
+                'Please ensure that at least one switch is selected, and that a description is completed.',
+                [
+                    {text: 'Cancel', onPress: () => console.log('Cancel Pressed'), style: 'cancel'},
+                    {
+                        text: 'OK',
+                        onPress: () => {this.props.confirmCancellation(this.state, this.props.routeInfo.routeId)}
+                    },
+                ],
+                {cancelable: false}
+            )
+        } else {
+            console.log('this.props.routeinfo' + this.props.routeInfo);
+            console.log(this.props.routeInfo);
+            console.log(this.props.routeInfo.routeId);
+            this.props.takeJob(this.props.user.uid);
+            this.props.confirmCancellation({
+                ...this.state
+            }, this.props.routeInfo.routeId)
+        }
+
 
     };
 
 
     render() {
         return (
-            <KeyboardAvoidingView style={styles.container}
-                                  behavior="position"
-                                  enabled>
+            <KeyboardAvoidingView keyboardVerticalOffset={100} style={styles.avoidingView}
+                                  contentContainerStyle={{paddingBottom: 5}} enabled>
                 <ScrollView contentContainerStyle={styles.scrollContainer}>
-                    <View style={[styles.card, {backgroundColor: '#3B586E'}]}>
-                        <View style={styles.customerContainer}>
-                            <Icon style={{position: 'absolute', top: 0, right: 10}}
-                                  name="ios-information-circle-outline" size={35} color={'rgba(255,255,255,0.9)'}/>
-                            <Text style={[styles.customer, {color: 'white', fontSize: 25, fontWeight: 'bold'}]}>
-                                Jill Jillenhall </Text>
-                            <Text style={{color: 'white'}}>
-                                45 Broadmoor Avenue SW, Calgary
-                            </Text>
-                            <Text style={{color: 'white'}}>
-                                Red Acura NSX </Text>
-                            <Text style={{color: 'white'}}>
-                                BNN-2260</Text>
-                            <Text style={{color: 'white'}}>
-                                Regular 87 - 60 Litres
-                            </Text>
-                        </View>
-                    </View>
+                    <CustomerInfo/>
                     <View style={styles.bottomContainer}>
                         <Text style={styles.subheader}>Why are you cancelling this delivery?</Text>
 
@@ -112,8 +154,8 @@ export default class PersonalInfo extends React.Component {
                                         switchButton
                                         switchOnTintColor={'#9eb7f0'}
                                         switchThumbTintColor={'#469cfc'}
-                                        switched={this.state.windshieldOn}
-                                        onSwitch={() => this.toggleSwitch('windshield')}
+                                        switched={this.state[item.type]}
+                                        onSwitch={() => this.toggleSwitch(item.type)}
 
                                     />
                                 ))
@@ -131,20 +173,26 @@ export default class PersonalInfo extends React.Component {
                                     textAlignVertical={'top'}
                                     multiline={true}
                                     numberOfLines={4}
-                                    placeholder={'Additional Notes'}/>
+                                    placeholder={'Additional Notes'}
+                                    value={this.state.feedback}
+                                    onChangeText={(text) => this.textHandler(text)}
+                                />
                             </View>
 
                         </View>
                     </View>
-                    <TouchableOpacity style={{
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: width * 0.9,
-                        backgroundColor: '#fb4348',
-                        elevation: 2,
-                        marginTop: 25,
-                        marginBottom: 50
-                    }}>
+                    <TouchableOpacity
+                        onPress={() => this.confirmCancellation()}
+
+                        style={{
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: width * 0.9,
+                            backgroundColor: '#fb4348',
+                            elevation: 2,
+                            marginTop: 25,
+                            marginBottom: 50
+                        }}>
                         <Text
                             style={{
                                 color: 'white',
@@ -163,9 +211,13 @@ export default class PersonalInfo extends React.Component {
     }
 }
 
+export default connect(mapStateToProps, mapDispatchToProps)(Cancelled);
+
+
 const styles = StyleSheet.create({
     avoidingView: {
         flex: 1,
+        backgroundColor: 'white'
     },
     bottomContainer: {
         width: width * 0.9
@@ -192,18 +244,6 @@ const styles = StyleSheet.create({
         backgroundColor: 'white'
 
     },
-    // listItem: {
-    //     flexDirection: 'row',
-    //     justifyContent: 'space-between',
-    //     paddingHorizontal: 20,
-    //     paddingVertical: 10,
-    //     marginTop: 5,
-    //     width: width * 0.9,
-    //     alignItems: 'center',
-    //     backgroundColor: 'rgba(255,255,255,0.4)',
-    //     borderColor: '#dde1e2',
-    //     borderWidth: 1,
-    // },
     listItemText: {
         textAlign: 'left'
     },

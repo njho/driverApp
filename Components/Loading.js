@@ -32,7 +32,8 @@ const mapDispatchToProps = dispatch => ({
     getOptimizedRoutes: (uid)=> dispatch(agent.getters.getOptimizedRoutes(uid)),
     setUser: (value) => {
         dispatch({type: 'SET_USER', value: value});
-    }
+    },
+    getAcceptedJob: (uid) => dispatch(agent.getters.getAcceptedJob(uid)),
 
 });
 
@@ -56,6 +57,7 @@ class Loading extends React.Component {
                 this.props.setUser(user);
                 this.props.getIsOnShift(user.uid);
                 this.props.getOptimizedRoutes(user.uid);
+                this.props.getAcceptedJob(user.uid);
 
                 AsyncStorage.setItem('userToken', user.uid);
             } else {

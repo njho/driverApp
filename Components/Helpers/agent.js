@@ -91,7 +91,7 @@ const getters = {
             })
         }
     },
-    getRouteInfo: (routeId) => {
+    getRouteInfo: (routeId, uid) => {
         return dispatch => {
             console.log('Getting Meta on the route');
             console.log('This is the routeId: ' + routeId);
@@ -101,27 +101,85 @@ const getters = {
                 } else {
                     console.log('This is the RouteInfo:', routeInfo.data());
                 }
-                firestore.collection('users').doc(routeInfo.data().customerUid).get().then((doc) => {
-                    if (!doc.exists) {
-                        console.log('That users meta data does not exist!');
-                        return null;
-                    } else {
-                        console.log('This is the customer Meta:', doc.data());
-                        dispatch({
-                            type: 'SET_ROUTE_INFO',
-                            routeInfo: routeInfo.data(),
-                            customerMeta: doc.data()
-                        });
-                    }
-                }).catch(err => {
-                    console.log('Error getting document', err);
-                });
+
+                if (routeInfo.data().cancelled === true) {
+                    console.log('The job has been cancelled');
+                    dispatch(actions.takeJob(uid));
+
+                } else {
+                    firestore.collection('users').doc(routeInfo.data().customerUid).get().then((doc) => {
+                        if (!doc.exists) {
+                            console.log('That users meta data does not exist!');
+                            return null;
+                        } else {
+                            console.log('This is the route Meta:', doc.data());
+                            let newRouteInfo = routeInfo.data();
+                            newRouteInfo.routeId = routeInfo.id;
+
+                            console.log(newRouteInfo);
+
+
+                            dispatch({
+                                type: 'SET_ROUTE_INFO',
+                                routeInfo: newRouteInfo,
+                                customerMeta: doc.data()
+                            });
+                        }
+                    }).catch(err => {
+                        console.log('Error getting document', err);
+                    });
+                }
+            })
+        }
+    },
+    getAcceptedJob: (uid) => {
+        return dispatch => {
+            console.log('Getting the job this driver has currently accepted on the route driverUid' + uid);
+
+            firestore.collection('routing').doc('calgary').collection('acceptedJobs').doc(uid).onSnapshot(doc => {
+                if (!doc.exists) {
+                    dispatch({
+                        type: 'SET_ACCEPTED_JOB',
+                        value: '',
+                    });
+
+                    return null;
+                } else {
+                    console.log('This is the acceptedJob:', doc.data());
+                    dispatch(getters.getRouteInfo(doc.data().location_id, uid));
+
+                    dispatch({
+                        type: 'SET_ACCEPTED_JOB',
+                        value: doc.data().location_name,
+                    });
+
+                }
+
+
+            })
+        }
+    },
+    getAcceptedJobMeta: (job) => {
+        return dispatch => {
+            console.log('GETTING THE ACCEPTED JOB META ' + job);
+
+            firestore.collection('jobs').doc('calgary').collection('jobs').doc(job).onSnapshot(doc => {
+                if (!doc.exists) {
+                    return null;
+                } else {
+                    console.log('This is the acceptedJobMeta:', doc.data());
+
+                    dispatch({
+                        type: 'SET_ACCEPTED_JOB_META',
+                        value: doc.data(),
+                    });
+                }
+
+
             })
         }
     },
     getOptimizedRoutes: (uid) => {
-        console.log('fuck balls');
-        console.log('This is the optimied Routes UID: ' + uid);
         return dispatch => {
             console.log('Get Optimized Routes');
             firestore.collection('routing').doc('calgary').collection('optimizedRoutes').doc(uid).onSnapshot(doc => {
@@ -131,7 +189,7 @@ const getters = {
 
                 } else {
 
-                    console.log('This is the optimised Routes REtrieved: ')
+                    console.log('This is the optimised Routes REtrieved: ');
                     console.log(doc.data());
 
                     let array = [];
@@ -199,18 +257,7 @@ const actions = {
             })
         }
     },
-    setIsOffShift: (uid) => {
-        console.log(uid);
-        return dispatch => {
-            console.log('Setting the driver OFF shift');
-            firestore.collection('drivers').doc('calgary').collection('activeDrivers').doc(uid).delete().then(() => {
-                dispatch({
-                    type: 'SET_DRIVER_ON_SHIFT',
-                    value: false
-                });
-            })
-        }
-    },
+
     sendFeedback: (uid, feedback) => {
         return dispatch => {
             firestore.collection('feedback').add({
@@ -225,8 +272,12 @@ const actions = {
                 });
         }
     },
-    takeJob: (uid) => {
+    takeJob: (uid, navigate) => {
+        console.log('Take Job 1');
+        console.log(uid);
+
         return dispatch => {
+            console.log('Take Job');
             return fetch('https://us-central1-surefuelapp.cloudfunctions.net/acceptNextAvailable', {
                 method: 'POST',
                 headers: {
@@ -236,9 +287,123 @@ const actions = {
                 body: JSON.stringify({
                     driver_uid: uid
                 })
-            }).then((response => console.log(response)))
+            }).then((response => {
+                if (navigate) {
+                    NavigationService.navigate('Home');
+
+                }
+                console.log(response)
+            }))
         }
-    }
+    },
+    forceLogout: (uid, jobId, logout) => {
+        console.log('Take Job 1');
+        console.log(uid);
+        console.log(jobId);
+
+        return dispatch => {
+            console.log('Force Log the bitch out');
+            return fetch('https://us-central1-surefuelapp.cloudfunctions.net/removeDriverActiveJob', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    driver_uid: uid,
+                    job_id: jobId
+                })
+            }).then((response => {
+                console.log(response);
+                dispatch({
+                    type: 'SET_DRIVER_ON_SHIFT',
+                    value: false
+                });
+
+                if (logout) {
+                    firebase.auth().signOut().then(() => NavigationService.navigate('Loading')
+                    );
+                }
+            }))
+        }
+    },
+    confirmCancellation: (object, jobId) => {
+        console.log('A cancellation has been triggered');
+        console.log(object);
+        console.log(jobId);
+        return dispatch => {
+            firestore.collection('jobs').doc('calgary').collection('jobs').doc(jobId).set({
+                    cancellation: object,
+                    cancelled: true
+                }, {merge: true})
+                .then((docRef) => {
+                    console.log(docRef);
+                    NavigationService.navigate('Home');
+
+                });
+        }
+    },
+    confirmCompletion: (jobId, object, uid) => {
+        console.log('The job has been completed!');
+        console.log(jobId);
+        console.log(object);
+
+        return dispatch => {
+            firestore.collection('jobs').doc('calgary').collection('jobs').doc(jobId).set({
+                    completion: object,
+                }, {merge: true})
+                .then((docRef) => {
+                    console.log(docRef);
+                    dispatch(actions.takeJob(uid, true));
+
+
+                });
+        }
+    },
+    setIsOffShift: (uid, logout) => {
+        console.log(uid);
+        return dispatch => {
+            console.log('Setting the driver OFF shift');
+            firestore.collection('drivers').doc('calgary').collection('activeDrivers').doc(uid).delete().then(() => {
+                dispatch({
+                    type: 'SET_DRIVER_ON_SHIFT',
+                    value: false
+                });
+
+                if (logout) {
+                    firebase.auth().signOut().then(() =>  NavigationService.navigate('Loading'));
+                }
+            })
+        }
+    },
+
+    dispatchEmergency: (uid, emergencyText, state, jobId) => {
+        console.log('An Emergency has been dispatched to dispatch. Taking the driver offline');
+        return dispatch => {
+
+
+            //ORDERED IN THIS WAY TO HELP PREVENT COLLISSIONS WITH FIREBASE CLOUD FUNCTIONS => IF DRIVER IS NOT REMOVED
+            //FROM ROUTIFIC QUEUE, AND A RE-OPTIMIZE IS TRIGGERED, HE WILL STILL BE IN QUEUE
+            firestore.collection('drivers').doc('calgary').collection('activeDrivers').doc(uid).delete().then(() => {
+                dispatch({
+                    type: 'SET_DRIVER_ON_SHIFT',
+                    value: false
+                });
+                return firestore.collection('drivers').doc('calgary').collection('emergency')
+                    .add({
+                        driverUid: uid,
+                        emergencyText: emergencyText,
+                        ...state,
+                        jobId: jobId,
+                        timestamp: Date.now()
+                    })
+            }).then(ref => {
+                console.log('Added document with ID: ', ref.id);
+                console.log('Take this guy offline, stat');
+                NavigationService.navigate('Home');
+            });
+        }
+    },
 
 };
 

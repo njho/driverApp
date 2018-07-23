@@ -11,10 +11,15 @@ import {
     ScrollView,
     TouchableOpacity,
     Switch,
+    Alert,
     Dimensions
 } from 'react-native';
+import {connect} from 'react-redux';
+
 import Icon from 'react-native-vector-icons/Ionicons';
 import {ListItem, List} from 'react-native-elements';
+
+import agent from './Helpers/agent';
 
 const height = Dimensions.get('window').height;
 const width = Dimensions.get('window').width;
@@ -22,23 +27,43 @@ const width = Dimensions.get('window').width;
 const list = [
     {
         title: 'Mechanical Problems',
-        icon: 'av-timer'
+        short: 'mechanical'
     },
     {
         title: 'Low Supplies',
-        icon: 'flight-takeoff'
+        short: 'supplies'
     },
     {
         title: 'Other',
-        icon: 'flight-takeoff'
+        short: 'other'
     },
 ];
 
-export default class PersonalInfo extends React.Component {
+const mapStateToProps = state => ({
+    user: state.auth.user,
+    routeInfo: state.routing.routeInfo,
+    emergencyText: state.common.emergencyText,
+});
+
+const mapDispatchToProps = dispatch => ({
+    setEmergencyText: (value) => {
+        dispatch({type: 'SET_EMERGENCY_TEXT', value: value});
+    },
+    dispatchEmergency: (uid, emergencyText, state, jobId) => {
+        console.log('This is the state');
+        console.log(state);
+        dispatch(agent.actions.dispatchEmergency(uid, emergencyText, state, jobId));
+    }
+});
+
+
+class Emergency extends React.Component {
     constructor() {
         super();
         this.state = {
-            // firebase things?
+            mechanical: false,
+            supplies: false,
+            other: false
         };
     }
 
@@ -52,24 +77,38 @@ export default class PersonalInfo extends React.Component {
         drawerIcon: ({tintColor}) => (
             <Icon name="ios-home" size={25} color={tintColor}/>
         ),
-        // headerLeft: (
-        //     <TouchableOpacity
-        //         onPress={()=>this.props.navigation.navigate('Home')}
-        //         style={{paddingLeft: 20}}
-        //     >
-        //         <Icon name="ios-arrow-back" size={40}/>
-        //     </TouchableOpacity>),
-        // drawerIcon: ({tintColor}) => (
-        //     <Icon name="ios-mail" size={25} color={tintColor}/>
-        // ),
-
     };
+
+    toggleSwitch(value) {
+        console.log(value);
+
+        this.setState({
+            ...this.state,
+            [value]: !this.state[value]
+        });
+    }
+
+    textHandler(text) {
+        this.props.setEmergencyText(text);
+    }
+
+    componentWillUnmount() {
+        this.props.setEmergencyText('');
+
+    }
+
+    dispatchEmergency() {
+        if (this.props.emergencyText !== null && (this.state.mechanical || this.state.other || this.state.supplies)) {
+            this.props.dispatchEmergency(this.props.user.uid, this.emergencyText, this.state, this.props.routeInfo.routeId)
+        } else {
+            Alert.alert('Please select one Toggle, and fill the text parameter');
+        }
+    }
 
 
     render() {
         return (
             <KeyboardAvoidingView style={styles.container}
-                                  behavior="position"
                                   enabled>
                 <ScrollView contentContainerStyle={styles.scrollContainer}>
                     <Icon name="ios-warning" size={80} color={'#fb624c'}/>
@@ -90,8 +129,8 @@ export default class PersonalInfo extends React.Component {
                                             switchButton
                                             switchOnTintColor={'#9eb7f0'}
                                             switchThumbTintColor={'#469cfc'}
-                                            switched={this.state.windshieldOn}
-                                            onSwitch={() => this.toggleSwitch('windshield')}
+                                            switched={this.state[item.short]}
+                                            onSwitch={() => this.toggleSwitch(item.short)}
 
                                         />
                                     ))
@@ -112,20 +151,27 @@ export default class PersonalInfo extends React.Component {
                                     textAlignVertical={'top'}
                                     multiline={true}
                                     numberOfLines={4}
-                                    placeholder={'Additional Notes'}/>
+                                    value={this.props.emergencyText}
+                                    placeholder={'Additional Notes Required'}
+                                    onChangeText={(text) => this.textHandler(text)}
+                                />
                             </View>
 
                         </View>
                     </View>
-                    <TouchableOpacity style={{
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: width * 0.9,
-                        backgroundColor: '#fb4348',
-                        elevation: 2,
-                        marginTop: 25,
-                        marginBottom: 40,
-                    }}>
+                    <TouchableOpacity
+                        style={{
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: width * 0.9,
+                            backgroundColor: '#fb4348',
+                            elevation: 2,
+                            marginTop: 25,
+                            marginBottom: 40,
+                        }}
+                        onPress={() => this.dispatchEmergency()}
+
+                    >
                         <Text
                             style={{
                                 color: 'white',
@@ -140,10 +186,12 @@ export default class PersonalInfo extends React.Component {
                 </ScrollView>
             </KeyboardAvoidingView>
 
-        )
-            ;
+        );
     }
 }
+
+export default connect(mapStateToProps, mapDispatchToProps)(Emergency);
+
 
 const styles = StyleSheet.create({
     avoidingView: {
@@ -152,7 +200,7 @@ const styles = StyleSheet.create({
     scrollContainer: {
         alignItems: 'center',
         justifyContent: 'space-around',
-paddingTop: 20,
+        paddingTop: 20,
     },
     container: {
         flex: 1,

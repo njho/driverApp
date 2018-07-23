@@ -1,7 +1,9 @@
 const defaultState = {
     optimizedRoutes: [],
     routeInfo: null,
-    customerMeta: {}
+    customerMeta: {},
+    acceptedJob: '',
+    acceptedJobMeta: {}
 };
 
 export default (state = defaultState, action) => {
@@ -21,6 +23,16 @@ export default (state = defaultState, action) => {
             return {
                 ...state,
                 customer: action.value
+            };
+        case 'SET_ACCEPTED_JOB':
+            return {
+                ...state,
+                acceptedJob: action.value
+            };
+        case 'SET_ACCEPTED_JOB_META':
+            return {
+                ...state,
+                acceptedJobMeta: action.value
             };
     }
     return state;

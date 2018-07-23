@@ -27,7 +27,9 @@ const width = Dimensions.get('window').width;
 const mapStateToProps = state => ({
     octane: state.common.octane,
     isOnShift: state.common.isOnShift,
-    optimizedRoutes: state.routing.optimizedRoutes
+    optimizedRoutes: state.routing.optimizedRoutes,
+    acceptedJob: state.routing.acceptedJob
+
 });
 
 const mapDispatchToProps = dispatch => ({
@@ -133,7 +135,7 @@ class SecondOrder extends React.Component {
                 <Animated.View style={[styles.card, {
                     transform: [{translateY: this.state.translate}]
                 }]}>
-                    {this.props.optimizedRoutes.length > 0 ? <CardTrip/> : <CardNoJobs/>}
+                    {this.props.acceptedJob !== '' ? <CardTrip/> : <CardNoJobs/>}
                 </Animated.View>
             </View>
 
@@ -275,8 +277,6 @@ const styles = StyleSheet.create({
         width: width,
         borderRadius: 5,
         marginTop: 30,
-        paddingTop: 30,
-        paddingLeft: 30,
 
     },
     title: {

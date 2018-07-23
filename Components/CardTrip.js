@@ -15,7 +15,8 @@ import {
 import {connect} from 'react-redux';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-import ShiftStart from './ShiftStart'
+
+import NavigationService from './Helpers/NavigationService';
 import agent from './Helpers/agent';
 
 const height = Dimensions.get('window').height;
@@ -27,6 +28,10 @@ const mapStateToProps = state => ({
 
     user: state.auth.user,
     optimizedRoutes: state.routing.optimizedRoutes,
+    acceptedJob: state.routing.acceptedJob,
+    acceptedJobMeta: state.routing.acceptedJobMeta,
+
+
     routeInfo: state.routing.routeInfo,
     customerMeta: state.routing.customerMeta
 });
@@ -35,8 +40,11 @@ const mapDispatchToProps = dispatch => ({
     takeJob: (uid) => {
         dispatch(agent.actions.takeJob(uid))
     },
-    getRouteInfo: (jobId) => {
-        dispatch(agent.getters.getRouteInfo(jobId));
+    getRouteInfo: (jobId, uid) => {
+        dispatch(agent.getters.getRouteInfo(jobId, uid));
+    },
+    getAcceptedJob: (uid) => {
+        dispatch(agent.getters.getAcceptedJob(uid));
     },
 });
 
@@ -51,7 +59,7 @@ class CardTrip extends React.Component {
     };
 
     openNavigation() {
-        var url = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=Los+Angeles";
+        var url = `https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=${this.props.routeInfo.routing.location.lat},${this.props.routeInfo.routing.location.lng} `;
         Linking.canOpenURL(url).then(supported => {
             if (!supported) {
                 console.log('Can\'t handle url: ' + url);
@@ -63,7 +71,11 @@ class CardTrip extends React.Component {
 
 
     componentWillMount() {
-        this.props.getRouteInfo(this.props.optimizedRoutes[0].location_id);
+        this.props.getAcceptedJob(this.props.user.uid);
+    }
+
+    componentWillUnmount() {
+        //Refactor to facilitate unmount listeners
     }
 
     componentWillReceiveProps(nextProps) {
@@ -78,48 +90,44 @@ class CardTrip extends React.Component {
                 <View style={styles.stripContainer}>
                     <View style={styles.strip}>
                     </View>
-                    <View style={styles.button}>
-
-                        <Text style={styles.buttonText}>
-                            14:00
-                        </Text>
-
-                    </View>
                 </View>
-                {this.props.routeInfo === null ? null : <View style={styles.customerContainer}>
-                    <Text style={styles.customer}>
-                        {this.props.customerMeta.firstName}  {this.props.customerMeta.lastName}</Text>
-                    <TouchableOpacity onPress={() => this.openNavigation()}>
-                        <Text style={styles.address}>
-                            Lat: {this.props.routeInfo.routing.location.lat},
-                            Lng: {this.props.routeInfo.routing.location.lat}
-                        </Text>
-                    </TouchableOpacity>
-                    <Text>
-                        Red Acura NSX </Text>
-                    <Text>
-                        BNN-2260</Text>
-                    <Text>
-                        Regular 87 - 60 Litres</Text>
-                    <View style={styles.outlineButton}>
-                        <Text style={styles.outlineButtonText}>
-                            Availability: 14:00 - 16:00
-                        </Text>
+                <View style={styles.secondContainer}>
+                    {this.props.routeInfo === null ? null : <View style={styles.customerContainer}>
+                        <Text style={styles.customer}>
+                            {this.props.customerMeta.firstName} {this.props.customerMeta.lastName}</Text>
+                        <TouchableOpacity onPress={() => this.openNavigation()}>
+                            <Text style={styles.address}>
+                                Lat: {this.props.routeInfo.routing.location.lat},{"\n"}
+                                Lng: {this.props.routeInfo.routing.location.lat}{"\n"}
+                            </Text>
+                        </TouchableOpacity>
+                        <Text>
+                            {this.props.routeInfo.vehicle.year} {this.props.routeInfo.vehicle.make} {this.props.routeInfo.vehicle.model}  </Text>
+                        <Text>
+                            {this.props.routeInfo.vehicle.license}</Text>
+                        <Text>
+                            {this.props.routeInfo.vehicle.octane} - 60 Litres</Text>
+                        <View style={styles.outlineButton}>
+                            <Text style={styles.outlineButtonText}>
+                                Delivery By: {this.props.routeInfo.routing.end}
+                            </Text>
+                        </View>
+                    </View>}
+
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity style={styles.buttonOne}
+                                          onPress={() => NavigationService.navigate('Arrive')}>
+                            <Icon name="ios-checkmark" size={40} color={'white'}/>
+                            <Text style={styles.buttonOneText}>Arrive</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.buttonTwo}
+                                          onPress={() => NavigationService.navigate('Cancelled')}>
+                            <Icon name="ios-close" size={40} color={'red'}/>
+                            <Text style={styles.buttonTwoText}>Cancel</Text>
+                        </TouchableOpacity>
                     </View>
-                </View>}
 
-                <View style={styles.buttonContainer}>
-                    <TouchableOpacity style={styles.buttonOne}
-                                      onPress={() => this.props.takeJob(this.props.user.uid)}>
-                        <Icon name="ios-checkmark" size={40} color={'white'}/>
-                        <Text style={styles.buttonOneText}>Arrive</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.buttonTwo}
-                                      onPress={() => this.props.navigation.navigate('Cancelled')}>
-                        <Icon name="ios-close" size={40} color={'red'}/>
-                        <Text style={styles.buttonTwoText}>Cancel</Text>
-                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -137,11 +145,14 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'flex-start',
         backgroundColor: '#4a4847'
+    }, secondContainer: {
+        paddingLeft: 30, paddingTop: 30,
     },
     customerContainer: {
         paddingTop: 10,
         paddingBottom: 20,
     },
+
     customer: {
         fontSize: 30,
         fontWeight: 'bold'
@@ -182,11 +193,13 @@ const styles = StyleSheet.create({
     },
     strip: {
         width: 8,
-        height: 60,
+        top: 0,
+        height: height,
         backgroundColor: '#c6dffb',
         position: 'absolute',
-        left: 20,
-        bottom: 20,
+
+        left: 2,
+        bottom: 0,
     },
     buttonOne: {
         flexDirection: 'row',
@@ -258,12 +271,9 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: 'white',
-        elevation: 10,
         width: width,
         borderRadius: 5,
-        marginTop: 30,
-        paddingTop: 30,
-        paddingLeft: 30,
+
 
     },
     title: {

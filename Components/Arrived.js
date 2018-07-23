@@ -8,6 +8,7 @@ import {
     TextInput,
     View,
     Button,
+    Linking,
     TouchableOpacity, Switch,
     ScrollView,
     Animated,
@@ -17,44 +18,45 @@ import Animation from 'lottie-react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {ListItem, List,} from 'react-native-elements';
 import {connect} from 'react-redux';
+import agent from './Helpers/agent';
 
-
-import firebase from 'react-native-firebase';
-
+import CustomerInfo from './CustomerInfo';
 
 const height = Dimensions.get('window').height;
 const width = Dimensions.get('window').width;
 
-const list = [
-    {
+const list = {
+    chip: {
         title: 'Windshield Chip Repair',
         avatar_url: require('../assets/windshield.png'),
         icon: 'av-timer'
     },
-    {
+    tire: {
         title: 'Tire Pressure Check',
         avatar_url: require('../assets/tiregauge.png'),
         icon: 'flight-takeoff'
     },
-    {
+    windshieldTopUp: {
         title: 'Fluid Top Up',
         avatar_url: require('../assets/topup.png'),
 
         icon: 'flight-takeoff'
     },
-];
+};
 
 const mapStateToProps = state => ({
     optimizedRoutes: state.routing.optimizedRoutes,
     routeInfo: state.routing.routeInfo,
+    acceptedJob: state.routing.acceptedJob,
+
+    customerMeta: state.routing.customerMeta,
+
 
     user: state.auth.user
 });
 
 const mapDispatchToProps = dispatch => ({
-    getRouteInfo: (jobId) => {
-        dispatch(agent.getters.getRouteInfo(jobId));
-    },
+    confirmCompletion: (jobId, object, uid) => dispatch(agent.actions.confirmCompletion(jobId, object, uid)),
 });
 
 
@@ -66,25 +68,15 @@ class Arrived extends React.Component {
             isOn: true,
             windshieldOn: true,
             progress: new Animated.Value(0),
-            animationVisible: false
+            animationVisible: false,
+            numberServices: 0,
+            fuelQuantity: '',
+            additionalNotes: '',
+            chip: false,
+            windshieldTopUp: false,
+            tire: false
         };
     }
-
-
-    completionButton = () => {
-        this.setState({
-            ...this.state,
-            animationVisible: true
-        });
-
-        Animated.timing(this.state.progress, {
-            toValue: 1,
-            duration: 3000,
-        }).start(() => {
-            return
-        });
-        this.props.takeJob(this.props.user.uid);
-    };
 
     static navigationOptions = {
         drawerLabel: 'Arrived',
@@ -97,40 +89,95 @@ class Arrived extends React.Component {
         drawerIcon: ({tintColor}) => (
             <Icon name="ios-home" size={25} color={tintColor}/>
         ),
+    };
 
-        // headerLeft: (
-        //     <TouchableOpacity
-        //         onPress={()=>this.props.navigation.navigate('Home')}
-        //         style={{paddingLeft: 20}}
-        //     >
-        //         <Icon name="ios-arrow-back" size={40}/>
-        //     </TouchableOpacity>),
-        // drawerIcon: ({tintColor}) => (
-        //     <Icon name="ios-mail" size={25} color={tintColor}/>
-        // ),
+
+    componentWillMount() {
+        Object.keys(this.props.routeInfo.servicesSelected).map((key, index) => {
+            if (this.props.routeInfo.servicesSelected[key]) {
+                this.setState({
+                    ...this.state,
+                    numberServices: this.state.numberServices + 1
+                });
+            }
+        })
 
     };
 
     toggleSwitch(value) {
         switch (value) {
-            case 'windshield':
-                this.setState({...this.state, windshieldOn: !this.state.windshieldOn});
-                return;
-            case 'fluids':
-                this.setState({...this.state, fluidsOn: !this.state.fluidsOn})
-                return;
             case 'chip':
-                this.setState({...this.state, chipOn: !this.state.chipOn})
+                this.setState({...this.state, chip: !this.state.chip});
                 return;
-
-
+            case 'tire':
+                this.setState({...this.state, tire: !this.state.tire})
+                return;
+            case 'windshieldTopUp':
+                this.setState({...this.state, windshieldTopUp: !this.state.windshieldTopUp})
+                return;
         }
+    };
+
+
+    callCustomer() {
+        Linking.openURL(`tel:${this.props.customerMeta.phoneNumber}`);
     }
 
+    textHandler = (type, value) => {
+        switch (type) {
+            case 'notes':
+                this.setState({
+                    ...this.state,
+                    additionalNotes: value
+                });
+                break;
+            case 'quantity':
+                this.setState({
+                    ...this.state,
+                    fuelQuantity: value
+                });
+                break;
+        }
+    };
+
+    completionButton = () => {
+
+        //TODO: CALCULATE CHARGE AMOUNT
+        let object = {
+            servicesRendered: {
+                chip: this.state.chip,
+                windshieldTopUp: this.state.windshieldTopUp,
+                tire: this.state.tire
+            },
+            chargeAmount: this.calculateChargeAmount(),
+            volume: this.state.fuelQuantity,
+            timestamp: Date.now(),
+
+        };
+        this.props.confirmCompletion(this.props.acceptedJob, object, this.props.user.uid)
+    };
+
+    calculateMaxFill = () => {
+        let jobInfo = this.props.routeInfo;
+        let maxFill = (jobInfo.serviceCosts.fuelPreAuth / 100) / jobInfo.octanePrice;
+        console.log(jobInfo);
+        console.log(maxFill);
+        return maxFill
+    };
+
+    calculateChargeAmount = () => {
+        let jobInfo = this.props.routeInfo;
+        let fuelPrice = jobInfo.octanePrice;
+        let fuelCharge = this.state.fuelQuantity * fuelPrice *100 ;
+        let cost = fuelCharge + jobInfo.serviceCosts.serviceCharge + (this.state.chip * jobInfo.serviceCosts.chip + this.state.tire * jobInfo.serviceCosts.tire + this.state.windshieldTopUp *  jobInfo.serviceCosts.windshieldTopUp )
+        console.log('This is the calculated Cost + ' + cost/100);
+        return cost
+    };
 
     render() {
         console.log('These are the optimizedRoutes');
         console.log(this.props.optimizedRoutes);
+        console.log(this.props.routeInfo);
         return (
             <View style={styles.container}>
                 <ScrollView
@@ -138,25 +185,11 @@ class Arrived extends React.Component {
                     style={{
                         width: width,
                     }}>
-                    <View style={[styles.card, {backgroundColor: '#3B586E'}]}>
-
-                        <View style={styles.customerContainer}>
-                            <Icon style={{position: 'absolute', top: 0, right: 10}}
-                                  name="ios-information-circle-outline" size={35} color={'rgba(255,255,255,0.9)'}/>
-                            <Text style={[styles.customer, {color: 'white', fontSize: 25, fontWeight: 'bold'}]}>
-                                Jill Jillenhall </Text>
-                            <Text style={{color: 'white'}}>
-                                45 Broadmoor Avenue SW, Calgary
-                            </Text>
-                            <Text style={{color: 'white'}}>
-                                Red Acura NSX </Text>
-                            <Text style={{color: 'white'}}>
-                                BNN-2260</Text>
-                            <Text style={{color: 'white'}}>
-                                Regular 87 - 60 Litres
-                            </Text>
-                        </View>
-                    </View>
+                    <CustomerInfo/>
+                    <TouchableOpacity style={styles.callContainer} onPress={() => this.callCustomer()}>
+                        <Icon name="ios-call" size={25} color={'white'}/>
+                        <Text style={styles.callContainerText}>Call Customer</Text>
+                    </TouchableOpacity>
                     <View style={styles.card}>
                         <Text style={styles.serviceTitle}>
                             SERVICE CHECKOUT </Text>
@@ -166,37 +199,46 @@ class Arrived extends React.Component {
                                 underlineColorAndroid='rgba(250,250,250,1)'
                                 autofocus={'true'}
                                 keyboardType={'numeric'}
-                                placeholder={'Fuel Quantity (Required)'}/>
-                            <Text style={styles.label}>60 L</Text>
+                                placeholder={'Fuel Quantity (Required)'}
+                                value={this.state.fuelQuantity}
+                                onChangeText={(text) => this.textHandler('quantity', text)}
+                            />
+                            <Text style={styles.label}>Max Fill: {this.calculateMaxFill().toFixed(3)} L</Text>
                         </View>
                         <TextInput
                             style={styles.textInput}
                             underlineColorAndroid='rgba(250,250,250,1)'
-                            placeholder={'Additional Notes'}/>
+                            placeholder={'Additional Notes'}
+                            value={this.state.additionalNotes}
+                            onChangeText={(text) => this.textHandler('notes', text)}
+                        />
 
-                        <View style={{paddingTop: 20}}>
+                        {this.state.numberServices > 0 ? <
+                            View style={{paddingTop: 20}}>
                             <Text style={[styles.serviceTitle]}>
                                 ADDITIONAL SERVICES </Text>
                             <List>
-                                {
-                                    list.map((item, i) => (
-                                        <ListItem
-                                            key={i}
-                                            title={item.title}
-                                            roundAvatar
-                                            avatar={item.avatar_url}
+                                {Object.keys(this.props.routeInfo.servicesSelected).map((key, index) => {
+                                    if (this.props.routeInfo.servicesSelected[key]) {
+                                        console.log(key);
+                                        return <ListItem
+                                            key={index}
+                                            title={list[key].title}
+                                            // roundAvatar
+                                            avatar={list[key].avatar_url}
                                             hideChevron={true}
                                             switchButton
                                             switchOnTintColor={'#9eb7f0'}
                                             switchThumbTintColor={'#469cfc'}
-                                            switched={this.state.windshieldOn}
-                                            onSwitch={() => this.toggleSwitch('windshield')}
-
+                                            switched={this.state[key]}
+                                            onSwitch={() => this.toggleSwitch(key)}
                                         />
-                                    ))
+                                    }
+                                })
                                 }
                             </List>
-                        </View>
+                        </View> : null}
+
 
                         <View style={styles.completionButtonContainer}>
                             <TouchableOpacity
@@ -247,13 +289,15 @@ class Arrived extends React.Component {
                                         source={require('../assets/Lottie/done.json')}/>
                                     </View> : null}
                             </TouchableOpacity>
-                            <TouchableOpacity style={{
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                backgroundColor: '#fb4348',
-                                elevation: 5,
-                                marginBottom: 0
-                            }}>
+                            <TouchableOpacity
+                                onPress={() => this.props.navigation.navigate('Cancelled')}
+                                style={{
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backgroundColor: '#fb4348',
+                                    elevation: 5,
+                                    marginBottom: 0
+                                }}>
                                 <Text
                                     style={{
                                         color: 'white',
@@ -288,6 +332,7 @@ const styles = StyleSheet.create({
         width: width,
         alignItems: 'center',
     },
+
     card: {
         backgroundColor: 'white',
         elevation: 1,
@@ -318,6 +363,20 @@ const styles = StyleSheet.create({
     },
     completionButtonContainer: {
         paddingVertical: 20
+    },
+    callContainer: {
+        backgroundColor: '#58B982',
+        alignSelf: 'flex-end',
+        justifyContent: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: width,
+    },
+    callContainerText: {
+        color: 'white',
+        padding: 15,
+        textAlign: 'center',
+        fontWeight: 'bold'
     }
 
 });

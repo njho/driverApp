@@ -95,7 +95,6 @@ const drawerNav = DrawerNavigator({
             drawerIcon: ({tintColor}) => <Icon name="ios-home" size={25} color={tintColor}/>
         }
     },
-    Settings: PersonalInfo,
 }, {
     title: 'SureFuel',
     contentComponent: CustomDrawerContentComponent
